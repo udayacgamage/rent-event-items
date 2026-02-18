@@ -56,7 +56,7 @@ const run = async () => {
   const adminHash = await bcrypt.hash('admin123', 10);
   const admin = await User.create({
     name: 'Admin User',
-    email: 'admin@eventgoods.com',
+    email: 'admin@occasia.com',
     phone: '+1-800-555-0100',
     passwordHash: adminHash,
     role: 'admin'
@@ -81,7 +81,7 @@ const run = async () => {
 
   // eslint-disable-next-line no-console
   console.log('✓ Database seeded successfully!');
-  console.log('  Admin login  → admin@eventgoods.com / admin123');
+  console.log('  Admin login  → admin@occasia.com / admin123');
   console.log('  Customer login → jane@example.com / customer123');
   console.log(`  Items: ${seedItems.length}`);
   console.log(`  Promo codes: ${seedPromos.length} (active: WELCOME10, SUMMER20, VIP15)`);

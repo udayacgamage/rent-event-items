@@ -45,8 +45,8 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
       <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link to="/" className="text-xl font-bold text-slate-900">
-          EventGoods
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/logo.svg" alt="Occasia" className="h-9" />
         </Link>
 
         {/* Desktop Nav */}
@@ -64,8 +64,8 @@ const Navbar = () => {
               </button>
             </div>
           ) : (
-            <NavLink to="/admin" className={navClass}>
-              Login
+            <NavLink to="/login" className="rounded-lg bg-amber-500 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-amber-600">
+              Sign In
             </NavLink>
           )}
         </div>
@@ -97,8 +97,8 @@ const Navbar = () => {
                 Logout ({user.name?.split(' ')[0]})
               </button>
             ) : (
-              <NavLink to="/admin" className={navClass} onClick={() => setMobileOpen(false)}>
-                Login
+              <NavLink to="/login" className="block rounded-lg bg-amber-500 px-4 py-2 text-center text-sm font-medium text-white" onClick={() => setMobileOpen(false)}>
+                Sign In
               </NavLink>
             )}
           </div>

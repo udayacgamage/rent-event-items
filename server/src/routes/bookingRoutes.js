@@ -1,36 +1,14 @@
 import { Router } from 'express';
-import Stripe from 'stripe';
 import Booking from '../models/Booking.js';
 import Item from '../models/Item.js';
 import PromoCode from '../models/PromoCode.js';
-import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-
 const orderCode = () => `EVT-${Date.now().toString().slice(-8)}-${Math.floor(Math.random() * 900 + 100)}`;
 
-router.post('/payment-intent', authenticate, async (req, res, next) => {
-  try {
-    const { amount } = req.body;
-
-    if (!stripe) {
-      return res.status(200).json({ clientSecret: 'mock_client_secret' });
-    }
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(Number(amount) * 100),
-      currency: 'usd'
-    });
-
-    return res.json({ clientSecret: paymentIntent.client_secret });
-  } catch (error) {
-    next(error);
-  }
-});
-
+// ---------- Create Booking ----------
 router.post('/', authenticate, async (req, res, next) => {
   try {
     const {
@@ -123,8 +101,6 @@ router.post('/', authenticate, async (req, res, next) => {
       paymentStatus: paymentStatus || 'pending'
     });
 
-    await User.findByIdAndUpdate(req.user._id, { $inc: { totalSpending: total } });
-
     return res.status(201).json({ booking });
   } catch (error) {
     next(error);
@@ -135,6 +111,22 @@ router.get('/my', authenticate, async (req, res, next) => {
   try {
     const bookings = await Booking.find({ customer: req.user._id }).sort({ createdAt: -1 });
     return res.json({ bookings });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ---------- Get Booking by orderId ----------
+router.get('/:orderId', authenticate, async (req, res, next) => {
+  try {
+    const booking = await Booking.findOne({
+      orderId: req.params.orderId,
+      customer: req.user._id
+    });
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    return res.json({ booking });
   } catch (error) {
     next(error);
   }

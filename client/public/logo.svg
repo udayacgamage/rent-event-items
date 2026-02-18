@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="none">
+  <!-- Tent/Triangle Icon -->
+  <polygon points="100,8 118,38 82,38" fill="#C65D0D"/>
+  <polygon points="100,14 112,38 100,38" fill="#8B3A06" opacity="0.7"/>
+  <rect x="96" y="30" width="8" height="8" rx="1" fill="#5C2604" opacity="0.6"/>
+  <!-- OCCASIA Text -->
+  <text x="100" y="60" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="22" font-weight="bold" letter-spacing="4" fill="#1a1a1a">OCCASIA</text>
+  <!-- Tagline -->
+  <text x="100" y="73" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="6" letter-spacing="3" fill="#8B6914">EVENT RENTALS &amp; CATERING</text>
+</svg>

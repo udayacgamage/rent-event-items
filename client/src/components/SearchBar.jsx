@@ -5,7 +5,8 @@ const SearchBar = ({ value, onChange, onSubmit }) => {
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Search categories: chairs, tables, canopies"
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500"
+        aria-label="Search items"
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500 text-slate-900"
       />
       <button
         type="submit"

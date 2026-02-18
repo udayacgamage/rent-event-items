@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../services/api';
 
+const fmt = (n) => `Rs. ${Number(n || 0).toLocaleString()}`;
+
 const ConfirmationPage = () => {
   const { orderId } = useParams();
   const [booking, setBooking] = useState(null);
@@ -38,13 +40,13 @@ const ConfirmationPage = () => {
             {booking.items?.map((item) => (
               <div key={item.name} className="flex justify-between py-2">
                 <span className="text-slate-700">{item.name} &times; {item.quantity}</span>
-                <span className="font-medium text-slate-900">${item.price * item.quantity}</span>
+                <span className="font-medium text-slate-900">{fmt((item.unitPrice || item.price) * item.quantity)}</span>
               </div>
             ))}
           </div>
           <div className="flex justify-between border-t pt-3 text-sm font-semibold text-slate-900">
             <span>Total</span>
-            <span>${booking.total}</span>
+            <span>{fmt(booking.total)}</span>
           </div>
           <p className="text-xs text-slate-500">
             Event Date: {new Date(booking.eventDate).toLocaleDateString()} · Return: {new Date(booking.returnDate).toLocaleDateString()}

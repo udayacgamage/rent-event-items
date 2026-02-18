@@ -4,6 +4,19 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
+// Public: validate a promo code (no admin required)
+router.get('/validate/:code', async (req, res, next) => {
+  try {
+    const promo = await PromoCode.findOne({ code: req.params.code.toUpperCase(), active: true });
+    if (!promo) {
+      return res.status(404).json({ message: 'Invalid or expired promo code' });
+    }
+    return res.json({ code: promo.code, discountPercent: promo.discountPercent });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.use(authenticate, requireAdmin);
 
 // List all promo codes

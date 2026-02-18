@@ -5,7 +5,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('eventGoodsToken');
+  const token = localStorage.getItem('occasiaToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -16,9 +16,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('eventGoodsToken');
-      if (window.location.pathname !== '/' && window.location.pathname !== '/admin') {
-        window.location.href = '/';
+      localStorage.removeItem('occasiaToken');
+      localStorage.removeItem('occasiaRefreshToken');
+      if (window.location.pathname !== '/' && window.location.pathname !== '/login' && window.location.pathname !== '/admin') {
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

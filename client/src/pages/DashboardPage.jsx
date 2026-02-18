@@ -55,6 +55,7 @@ const DashboardPage = () => {
   );
 
   const cancelBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to cancel this booking? This cannot be undone.')) return;
     try {
       await api.patch(`/bookings/${bookingId}/cancel`);
       setBookings((prev) =>
@@ -113,7 +114,7 @@ const DashboardPage = () => {
             <p><span className="font-medium text-slate-900">Name:</span> {user?.name}</p>
             <p><span className="font-medium text-slate-900">Email:</span> {user?.email}</p>
             <p><span className="font-medium text-slate-900">Phone:</span> {user?.phone || 'Not set'}</p>
-            <p><span className="font-medium text-slate-900">Total Spending:</span> ${user?.totalSpending || 0}</p>
+            <p><span className="font-medium text-slate-900">Total Spending:</span> Rs. {(user?.totalSpending || 0).toLocaleString()}</p>
           </div>
         )}
       </section>
@@ -147,7 +148,7 @@ const DashboardPage = () => {
                     <p className="font-semibold text-slate-900">{booking.orderId}</p>
                     <p className="mt-1 text-slate-600">{booking.items.map((i) => `${i.name} × ${i.quantity}`).join(', ')}</p>
                   </div>
-                  <span className="font-semibold text-amber-700">${booking.total}</span>
+                  <span className="font-semibold text-amber-700">Rs. {booking.total?.toLocaleString()}</span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[booking.bookingStatus] || 'bg-slate-100 text-slate-700'}`}>{booking.bookingStatus}</span>

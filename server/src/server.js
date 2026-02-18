@@ -58,7 +58,7 @@ const autoSeed = async () => {
   await Item.insertMany(items);
 
   const adminHash = await bcrypt.hash('admin123', 10);
-  await User.create({ name: 'Admin User', email: 'admin@eventgoods.com', phone: '+1-800-555-0100', passwordHash: adminHash, role: 'admin' });
+  await User.create({ name: 'Admin User', email: 'admin@occasia.com', phone: '+1-800-555-0100', passwordHash: adminHash, role: 'admin' });
 
   const customerHash = await bcrypt.hash('customer123', 10);
   await User.create({ name: 'Jane Doe', email: 'jane@example.com', phone: '+1-555-123-4567', passwordHash: customerHash, role: 'customer', totalSpending: 0 });
@@ -66,7 +66,7 @@ const autoSeed = async () => {
   await PromoCode.insertMany(promos);
 
   console.log(`Auto-seeded: ${items.length} items, 2 users, ${promos.length} promo codes`);
-  console.log('  Admin: admin@eventgoods.com / admin123');
+  console.log('  Admin: admin@occasia.com / admin123');
   console.log('  Customer: jane@example.com / customer123');
 };
 

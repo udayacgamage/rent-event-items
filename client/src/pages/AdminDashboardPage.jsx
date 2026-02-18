@@ -148,7 +148,7 @@ const AdminDashboardPage = () => {
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4">
               <p className="text-sm text-slate-500">Total Revenue</p>
-              <p className="text-2xl font-semibold text-green-600">${finance.totalRevenue}</p>
+              <p className="text-2xl font-semibold text-green-600">Rs. {finance.totalRevenue?.toLocaleString()}</p>
             </div>
           </section>
 
@@ -211,7 +211,7 @@ const AdminDashboardPage = () => {
                       Items: {booking.items.map((i) => `${i.name} × ${i.quantity}`).join(', ')}
                     </p>
                   </div>
-                  <span className="font-semibold text-amber-700">${booking.total}</span>
+                  <span className="font-semibold text-amber-700">Rs. {booking.total?.toLocaleString()}</span>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-1">
@@ -278,7 +278,7 @@ const AdminDashboardPage = () => {
                   <td className="px-4 py-3 font-medium text-slate-900">{customer.name}</td>
                   <td className="px-4 py-3 text-slate-600">{customer.email}</td>
                   <td className="px-4 py-3 text-slate-600">{customer.phone || '—'}</td>
-                  <td className="px-4 py-3 text-right font-medium text-amber-700">${customer.totalSpending}</td>
+                  <td className="px-4 py-3 text-right font-medium text-amber-700">Rs. {customer.totalSpending?.toLocaleString()}</td>
                   <td className="px-4 py-3 text-slate-400">{new Date(customer.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
