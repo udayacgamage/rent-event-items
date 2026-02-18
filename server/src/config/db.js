@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import dns from 'node:dns';
 
 export const connectDatabase = async () => {
   const mongoUri = process.env.MONGO_URI;
@@ -7,8 +8,16 @@ export const connectDatabase = async () => {
     throw new Error('MONGO_URI is not configured');
   }
 
+  // Use Google DNS to bypass local DNS interception (e.g. VPN/proxy)
+  if (mongoUri.startsWith('mongodb+srv')) {
+    dns.setServers(['8.8.8.8', '8.8.4.4']);
+  }
+
   try {
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+    });
     // eslint-disable-next-line no-console
     console.log('Connected to MongoDB');
   } catch (error) {
