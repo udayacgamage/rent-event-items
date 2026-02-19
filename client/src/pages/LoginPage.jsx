@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,33 +13,50 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const googleBtnRef = useRef(null);
+  const googleCallbackRef = useRef(null);
 
-  // Google Sign-In callback
-  const handleGoogleCredential = useCallback(async (response) => {
+  // Keep callback ref in sync so GSI always invokes the latest handler
+  googleCallbackRef.current = async (response) => {
     setError('');
     setLoading(true);
     try {
+      if (!response?.credential) {
+        throw new Error('No credential received from Google. Please try again.');
+      }
       await googleLogin(response.credential);
       navigate('/catalog');
     } catch (err) {
-      setError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
+      console.error('[Google Sign-In] Error:', err);
+      const msg =
+        err.response?.data?.message ||
+        err.message ||
+        'Google sign-in failed. Please try again.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
-  }, [googleLogin, navigate]);
+  };
 
-  // Initialise Google One Tap / button
+  // Initialise Google One Tap / button (runs once)
   useEffect(() => {
+    // Stable wrapper that always calls the latest handler via ref
+    const stableCallback = (resp) => googleCallbackRef.current(resp);
+
     const initGoogle = () => {
       if (!window.google?.accounts?.id) return;
 
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleCredential,
+        callback: stableCallback,
+        error_callback: (err) => {
+          console.error('[Google Sign-In] GSI error:', err);
+          setError(err?.message || 'Google sign-in was cancelled or failed. Please try again.');
+        },
         auto_select: false
       });
 
       if (googleBtnRef.current) {
+        googleBtnRef.current.innerHTML = '';
         window.google.accounts.id.renderButton(googleBtnRef.current, {
           theme: 'outline',
           size: 'large',
@@ -64,7 +81,7 @@ const LoginPage = () => {
       }, 100);
       return () => clearInterval(timer);
     }
-  }, [handleGoogleCredential]);
+  }, []); // stable — callback accessed via ref
 
   const set = (field) => (event) => setForm((prev) => ({ ...prev, [field]: event.target.value }));
 

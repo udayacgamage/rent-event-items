@@ -228,7 +228,8 @@ router.post('/google', async (req, res, next) => {
     let ticket;
     try {
       ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
-    } catch {
+    } catch (verifyErr) {
+      console.error('[Google Auth] Token verification failed:', verifyErr.message || verifyErr);
       return res.status(401).json({ message: 'Invalid Google token' });
     }
 
