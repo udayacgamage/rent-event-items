@@ -83,7 +83,10 @@ const start = async () => {
   }
 };
 
-start();
+// Only start listening locally — Vercel handles DB in app.js middleware
+if (!process.env.VERCEL) {
+  start();
+}
 
 // Export for Vercel serverless
 export default app;

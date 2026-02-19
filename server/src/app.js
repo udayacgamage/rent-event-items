@@ -2,6 +2,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import morgan from 'morgan';
+import { connectDatabase } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import itemRoutes from './routes/itemRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
@@ -38,6 +39,24 @@ app.use(morgan('dev'));
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+// Vercel serverless: ensure DB is connected before handling API routes
+if (process.env.VERCEL) {
+  let dbReady = null;
+  app.use('/api', (req, res, next) => {
+    if (!dbReady) {
+      dbReady = connectDatabase().catch((err) => {
+        console.error('DB connection failed:', err.message);
+        dbReady = null;
+        throw err;
+      });
+    }
+    dbReady.then(() => next()).catch(() => {
+      dbReady = null;
+      res.status(500).json({ message: 'Database connection failed' });
+    });
+  });
+}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes);
