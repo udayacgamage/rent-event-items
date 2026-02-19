@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from './NotificationBell';
+import DarkModeToggle from './DarkModeToggle';
 
 const navClass = ({ isActive }) =>
-  isActive ? 'text-amber-600 font-semibold' : 'text-slate-700 hover:text-amber-600 transition-colors';
+  isActive ? 'text-amber-600 font-semibold' : 'text-slate-700 dark:text-slate-300 hover:text-amber-600 transition-colors';
 
 const Navbar = () => {
   const { itemCount } = useCart();
@@ -43,7 +45,7 @@ const Navbar = () => {
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
       <nav className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
           <img src="/logo.svg" alt="Occasia" className="h-9" />
@@ -52,13 +54,15 @@ const Navbar = () => {
         {/* Desktop Nav */}
         <div className="hidden items-center gap-5 text-sm md:flex">
           {links}
+          <DarkModeToggle />
+          <NotificationBell />
           {user ? (
             <div className="flex items-center gap-3">
-              <span className="text-xs text-slate-500">Hi, {user.name?.split(' ')[0]}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">Hi, {user.name?.split(' ')[0]}</span>
               <button
                 type="button"
                 onClick={logout}
-                className="rounded-md bg-slate-900 px-3 py-1.5 text-white transition hover:bg-slate-700"
+                className="rounded-md bg-slate-900 px-3 py-1.5 text-white transition hover:bg-slate-700 dark:bg-slate-600 dark:hover:bg-slate-500"
               >
                 Logout
               </button>
@@ -85,14 +89,18 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       {mobileOpen ? (
-        <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
+        <div className="border-t border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-800 md:hidden">
           <div className="flex flex-col gap-3 text-sm">
             {links}
+            <div className="flex items-center gap-3 py-1">
+              <DarkModeToggle />
+              <NotificationBell />
+            </div>
             {user ? (
               <button
                 type="button"
                 onClick={() => { logout(); setMobileOpen(false); }}
-                className="w-full rounded-md bg-slate-900 px-3 py-2 text-white"
+                className="w-full rounded-md bg-slate-900 px-3 py-2 text-white dark:bg-slate-600"
               >
                 Logout ({user.name?.split(' ')[0]})
               </button>

@@ -4,6 +4,7 @@ import Item from '../models/Item.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
+import { sendStatusUpdateEmail } from '../utils/email.js';
 
 const router = Router();
 
@@ -48,9 +49,27 @@ router.patch('/bookings/:id', async (req, res, next) => {
       }
     }
 
-    const booking = await Booking.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
-    if (!booking) {
+    // Fetch current booking to check status transition
+    const currentBooking = await Booking.findById(req.params.id);
+    if (!currentBooking) {
       return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Auto-restore stock when tracking status changes to 'returned'
+    if (updates.trackingStatus === 'returned' && currentBooking.trackingStatus !== 'returned') {
+      for (const entry of currentBooking.items) {
+        await Item.findByIdAndUpdate(entry.item, { $inc: { rentedQuantity: -entry.quantity } });
+      }
+      updates.bookingStatus = 'returned';
+    }
+
+    const booking = await Booking.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
+
+    // Send status update email (fire & forget)
+    for (const field of ['trackingStatus', 'bookingStatus', 'paymentStatus']) {
+      if (updates[field] && updates[field] !== currentBooking[field]) {
+        sendStatusUpdateEmail(booking, field, updates[field]).catch(err => console.error('[Email] Status update email failed:', err.message));
+      }
     }
 
     return res.json({ booking });

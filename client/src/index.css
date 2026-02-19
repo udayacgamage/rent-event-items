@@ -19,3 +19,18 @@ body {
   background: #fee2e2 !important;
   border-radius: 0.35rem;
 }
+
+.calendar-confirmed {
+  background: #dcfce7 !important;
+  border-radius: 0.35rem;
+}
+
+.calendar-cancelled {
+  background: #fee2e2 !important;
+  border-radius: 0.35rem;
+}
+
+.calendar-returned {
+  background: #f1f5f9 !important;
+  border-radius: 0.35rem;
+}

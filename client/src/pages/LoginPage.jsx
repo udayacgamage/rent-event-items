@@ -258,6 +258,14 @@ const LoginPage = () => {
             </div>
           )}
 
+          {mode === 'login' && (
+            <div className="text-right">
+              <Link to="/forgot-password" className="text-xs text-amber-600 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}

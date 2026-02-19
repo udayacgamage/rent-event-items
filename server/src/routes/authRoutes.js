@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
+import { sendPasswordResetEmail } from '../utils/email.js';
 
 const router = Router();
 
@@ -298,6 +299,71 @@ router.patch('/profile', authenticate, async (req, res, next) => {
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true });
     return res.json({ user: sanitiseUser(user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ---------- Forgot Password ----------
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    // Always return success to avoid email enumeration
+    if (!user || (!user.passwordHash && user.googleId)) {
+      return res.json({ message: 'If that email exists, a reset link has been sent.' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    user.resetPasswordToken = hash;
+    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const resetUrl = `${clientUrl}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
+
+    await sendPasswordResetEmail(user.email, resetUrl);
+
+    return res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ---------- Reset Password ----------
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { token, email, password } = req.body;
+    if (!token || !email || !password) {
+      return res.status(400).json({ message: 'Token, email and new password are required' });
+    }
+
+    const pwError = validatePassword(password);
+    if (pwError) return res.status(400).json({ message: pwError });
+
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+      resetPasswordToken: hash,
+      resetPasswordExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    user.passwordHash = await bcrypt.hash(password, 12);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+    user.refreshToken = undefined;
+    await user.save();
+
+    return res.json({ message: 'Password has been reset. You can now log in.' });
   } catch (error) {
     next(error);
   }

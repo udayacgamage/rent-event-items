@@ -51,4 +51,47 @@ router.post('/', authenticate, async (req, res, next) => {
   }
 });
 
+// Helper to recalculate item rating
+const recalcItemRating = async (itemId) => {
+  const allReviews = await Review.find({ item: itemId });
+  if (allReviews.length === 0) {
+    await Item.findByIdAndUpdate(itemId, { averageRating: 0, reviewsCount: 0 });
+  } else {
+    const avg = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+    await Item.findByIdAndUpdate(itemId, { averageRating: Math.round(avg * 10) / 10, reviewsCount: allReviews.length });
+  }
+};
+
+// Update a review
+router.patch('/:reviewId', authenticate, async (req, res, next) => {
+  try {
+    const review = await Review.findOne({ _id: req.params.reviewId, user: req.user._id });
+    if (!review) return res.status(404).json({ message: 'Review not found' });
+
+    if (req.body.rating !== undefined) review.rating = Math.min(5, Math.max(1, Number(req.body.rating)));
+    if (req.body.comment !== undefined) review.comment = req.body.comment;
+    await review.save();
+
+    await recalcItemRating(review.item);
+
+    return res.json({ review });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete a review
+router.delete('/:reviewId', authenticate, async (req, res, next) => {
+  try {
+    const review = await Review.findOneAndDelete({ _id: req.params.reviewId, user: req.user._id });
+    if (!review) return res.status(404).json({ message: 'Review not found' });
+
+    await recalcItemRating(review.item);
+
+    return res.json({ message: 'Review deleted' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

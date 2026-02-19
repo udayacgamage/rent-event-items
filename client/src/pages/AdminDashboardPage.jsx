@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
+const CATEGORIES = ['marquee', 'canopy', 'stage-setup', 'floral-design', 'lighting', 'catering'];
+
 const statusColors = {
   confirmed: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
@@ -18,6 +20,11 @@ const AdminDashboardPage = () => {
   const [customers, setCustomers] = useState([]);
   const [finance, setFinance] = useState({ totalRevenue: 0, totalBookings: 0, topItems: [] });
   const [promoCodes, setPromoCodes] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [items, setItems] = useState([]);
+  const [itemForm, setItemForm] = useState({ name: '', description: '', category: 'marquee', rentalPrice: '', stockQuantity: '', dimensions: '', material: '' });
+  const [editingItem, setEditingItem] = useState(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
@@ -26,12 +33,14 @@ const AdminDashboardPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [inventoryRes, bookingsRes, customersRes, financeRes, promoRes] = await Promise.all([
+        const [inventoryRes, bookingsRes, customersRes, financeRes, promoRes, analyticsRes, itemsRes] = await Promise.all([
           api.get('/admin/inventory-summary'),
           api.get('/admin/bookings'),
           api.get('/admin/customers'),
           api.get('/finance/dashboard'),
-          api.get('/promo-codes')
+          api.get('/promo-codes'),
+          api.get('/finance/analytics'),
+          api.get('/items?limit=200')
         ]);
 
         setInventory(inventoryRes.data);
@@ -39,6 +48,8 @@ const AdminDashboardPage = () => {
         setCustomers(customersRes.data.customers || []);
         setFinance(financeRes.data);
         setPromoCodes(promoRes.data.codes || []);
+        setAnalytics(analyticsRes.data);
+        setItems(itemsRes.data.items || []);
       } catch {
         setError('Failed to load dashboard data. Make sure you are logged in as admin.');
       } finally {
@@ -89,6 +100,66 @@ const AdminDashboardPage = () => {
     }
   };
 
+  const saveItem = async () => {
+    try {
+      if (editingItem) {
+        const res = await api.patch(`/items/${editingItem._id}`, itemForm);
+        setItems((prev) => prev.map((i) => (i._id === editingItem._id ? res.data.item : i)));
+        toast.success('Item updated');
+      } else {
+        const res = await api.post('/items', itemForm);
+        setItems((prev) => [res.data.item, ...prev]);
+        toast.success('Item created');
+      }
+      setItemForm({ name: '', description: '', category: 'marquee', rentalPrice: '', stockQuantity: '', dimensions: '', material: '' });
+      setEditingItem(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save item');
+    }
+  };
+
+  const startEditItem = (item) => {
+    setEditingItem(item);
+    setItemForm({
+      name: item.name,
+      description: item.description,
+      category: item.category,
+      rentalPrice: item.rentalPrice,
+      stockQuantity: item.stockQuantity,
+      dimensions: item.dimensions || '',
+      material: item.material || ''
+    });
+    setActiveTab('items');
+  };
+
+  const disableItem = async (id) => {
+    try {
+      await api.delete(`/items/${id}`);
+      setItems((prev) => prev.map((i) => (i._id === id ? { ...i, disabled: true } : i)));
+      toast.success('Item disabled');
+    } catch {
+      toast.error('Failed to disable item');
+    }
+  };
+
+  const handleImageUpload = async (itemId, files) => {
+    if (!files || files.length === 0) return;
+    setUploadingImages(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((f) => formData.append('images', f));
+      const res = await api.post(`/items/${itemId}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setItems((prev) => prev.map((i) => (i._id === itemId ? { ...i, images: res.data.images } : i)));
+      toast.success('Images uploaded');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Image upload failed');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -107,6 +178,8 @@ const AdminDashboardPage = () => {
 
   const tabs = [
     { key: 'overview', label: 'Overview' },
+    { key: 'analytics', label: 'Analytics' },
+    { key: 'items', label: `Items (${items.length})` },
     { key: 'bookings', label: `Bookings (${bookings.length})` },
     { key: 'customers', label: `Customers (${customers.length})` },
     { key: 'promos', label: 'Promo Codes' }
@@ -189,6 +262,183 @@ const AdminDashboardPage = () => {
               </div>
             </div>
           </section>
+        </div>
+      ) : null}
+
+      {/* Analytics Tab */}
+      {activeTab === 'analytics' && analytics ? (
+        <div className="space-y-6">
+          {/* Monthly Revenue Bar Chart */}
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">Monthly Revenue (Last 12 Months)</h2>
+            <div className="flex items-end gap-2" style={{ height: 200 }}>
+              {analytics.monthlyRevenue.map((m) => {
+                const maxRev = Math.max(...analytics.monthlyRevenue.map((r) => r.revenue), 1);
+                const h = (m.revenue / maxRev) * 100;
+                return (
+                  <div key={m.label} className="flex flex-1 flex-col items-center gap-1">
+                    <span className="text-[10px] font-medium text-slate-500">
+                      {m.revenue > 0 ? `Rs.${(m.revenue / 1000).toFixed(0)}k` : ''}
+                    </span>
+                    <div
+                      className="w-full rounded-t-md bg-amber-500 transition-all hover:bg-amber-600"
+                      style={{ height: `${Math.max(h, 2)}%` }}
+                      title={`${m.label}: Rs. ${m.revenue.toLocaleString()}`}
+                    />
+                    <span className="text-[10px] text-slate-400">{m.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Booking Status Breakdown */}
+            <section className="rounded-xl border border-slate-200 bg-white p-5">
+              <h2 className="mb-4 text-lg font-semibold text-slate-900">Booking Status</h2>
+              <div className="space-y-3">
+                {Object.entries(analytics.statusCounts).map(([status, count]) => {
+                  const total = Object.values(analytics.statusCounts).reduce((s, c) => s + c, 0);
+                  const pct = total > 0 ? (count / total) * 100 : 0;
+                  return (
+                    <div key={status}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="capitalize text-slate-700">{status}</span>
+                        <span className="text-slate-500">{count} ({pct.toFixed(0)}%)</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={`h-full rounded-full transition-all ${status === 'confirmed' ? 'bg-green-500' : status === 'cancelled' ? 'bg-red-500' : 'bg-slate-400'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Top Items */}
+            <section className="rounded-xl border border-slate-200 bg-white p-5">
+              <h2 className="mb-4 text-lg font-semibold text-slate-900">Most Rented Items</h2>
+              <div className="space-y-3">
+                {analytics.topCategories.map((item, i) => {
+                  const maxCount = analytics.topCategories[0]?.count || 1;
+                  const pct = (item.count / maxCount) * 100;
+                  return (
+                    <div key={item.name}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-slate-700">{i + 1}. {item.name}</span>
+                        <span className="text-slate-500">{item.count} rentals</span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full rounded-full bg-amber-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                {analytics.topCategories.length === 0 && (
+                  <p className="text-sm text-slate-400">No data yet</p>
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Items Tab */}
+      {activeTab === 'items' ? (
+        <div className="space-y-4">
+          {/* Item Form */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-3 text-lg font-semibold text-slate-900">{editingItem ? 'Edit Item' : 'Add New Item'}</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Name*</label>
+                <input type="text" value={itemForm.name} onChange={(e) => setItemForm((p) => ({ ...p, name: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Category*</label>
+                <select value={itemForm.category} onChange={(e) => setItemForm((p) => ({ ...p, category: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Price/Day (Rs.)*</label>
+                <input type="number" min={0} value={itemForm.rentalPrice} onChange={(e) => setItemForm((p) => ({ ...p, rentalPrice: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Stock Quantity*</label>
+                <input type="number" min={0} value={itemForm.stockQuantity} onChange={(e) => setItemForm((p) => ({ ...p, stockQuantity: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Dimensions</label>
+                <input type="text" value={itemForm.dimensions} onChange={(e) => setItemForm((p) => ({ ...p, dimensions: e.target.value }))} placeholder="e.g. 10m × 5m" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Material</label>
+                <input type="text" value={itemForm.material} onChange={(e) => setItemForm((p) => ({ ...p, material: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-xs font-medium text-slate-500 mb-1">Description*</label>
+                <textarea value={itemForm.description} onChange={(e) => setItemForm((p) => ({ ...p, description: e.target.value }))} rows={2} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button type="button" onClick={saveItem} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600">{editingItem ? 'Update Item' : 'Create Item'}</button>
+              {editingItem && (
+                <button type="button" onClick={() => { setEditingItem(null); setItemForm({ name: '', description: '', category: 'marquee', rentalPrice: '', stockQuantity: '', dimensions: '', material: '' }); }} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-100">Cancel</button>
+              )}
+            </div>
+          </div>
+
+          {/* Items List */}
+          <div className="space-y-3">
+            {items.map((item) => (
+              <div key={item._id} className={`rounded-xl border bg-white p-4 ${item.disabled ? 'opacity-50 border-red-200' : 'border-slate-200'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex gap-3">
+                    {item.images?.[0] && (
+                      <img src={item.images[0]} alt={item.name} className="h-16 w-16 rounded-lg object-cover" />
+                    )}
+                    <div>
+                      <p className="font-semibold text-slate-900">{item.name} {item.disabled && <span className="text-xs text-red-500">(disabled)</span>}</p>
+                      <p className="text-xs text-slate-500 capitalize">{item.category} · Rs. {item.rentalPrice}/day · Stock: {item.stockQuantity}</p>
+                      <p className="mt-1 text-xs text-slate-400 line-clamp-1">{item.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <button type="button" onClick={() => startEditItem(item)} className="rounded border border-slate-300 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100">Edit</button>
+                    {!item.disabled && (
+                      <button type="button" onClick={() => disableItem(item._id)} className="rounded border border-red-300 px-2.5 py-1 text-xs text-red-600 hover:bg-red-50">Disable</button>
+                    )}
+                  </div>
+                </div>
+                {/* Image Upload */}
+                <div className="mt-3 flex items-center gap-2">
+                  <label className="rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs text-slate-500 cursor-pointer hover:bg-slate-50 transition">
+                    {uploadingImages ? 'Uploading...' : 'Upload Images'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      disabled={uploadingImages}
+                      onChange={(e) => handleImageUpload(item._id, e.target.files)}
+                    />
+                  </label>
+                  {item.images?.length > 0 && (
+                    <div className="flex gap-1">
+                      {item.images.slice(0, 4).map((img, idx) => (
+                        <img key={idx} src={img} alt="" className="h-8 w-8 rounded object-cover" />
+                      ))}
+                      {item.images.length > 4 && <span className="text-xs text-slate-400">+{item.images.length - 4}</span>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
 

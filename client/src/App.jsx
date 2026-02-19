@@ -14,10 +14,14 @@ import DashboardPage from './pages/DashboardPage';
 import HomePage from './pages/HomePage';
 import NotFoundPage from './pages/NotFoundPage';
 import WishlistPage from './pages/WishlistPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import ComparePage from './pages/ComparePage';
+import CompareBar from './components/CompareBar';
 
 function App() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
       <ScrollToTop />
       <Navbar />
       <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -25,6 +29,9 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/compare" element={<ComparePage />} />
           <Route path="/cart" element={<CartCheckoutPage />} />
           <Route path="/confirmation/:orderId" element={<ConfirmationPage />} />
           <Route
@@ -57,6 +64,7 @@ function App() {
       </main>
       <Footer />
       <BackToTop />
+      <CompareBar />
     </div>
   );
 }

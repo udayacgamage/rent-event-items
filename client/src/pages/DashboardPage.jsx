@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import InvoiceModal from '../components/InvoiceModal';
+import BookingCalendar from '../components/BookingCalendar';
 
 const statusColors = {
   confirmed: 'bg-green-100 text-green-800',
@@ -18,6 +20,7 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
+  const [invoiceBooking, setInvoiceBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [profileForm, setProfileForm] = useState({ name: '', phone: '' });
@@ -128,9 +131,14 @@ const DashboardPage = () => {
           <button type="button" onClick={() => setTab('history')} className={`text-sm font-medium pb-1 border-b-2 transition ${tab === 'history' ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
             History ({past.length})
           </button>
+          <button type="button" onClick={() => setTab('calendar')} className={`text-sm font-medium pb-1 border-b-2 transition ${tab === 'calendar' ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            Calendar
+          </button>
         </div>
 
-        {loading ? (
+        {tab === 'calendar' ? (
+          <BookingCalendar bookings={bookings} />
+        ) : loading ? (
           <div className="flex justify-center py-8">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-amber-500" />
           </div>
@@ -159,6 +167,7 @@ const DashboardPage = () => {
                   {booking.bookingStatus === 'confirmed' ? (
                     <button type="button" onClick={() => cancelBooking(booking._id)} className="rounded-lg border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50 transition">Cancel Booking</button>
                   ) : null}
+                  <button type="button" onClick={() => setInvoiceBooking(booking)} className="rounded-lg border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 transition">Invoice</button>
                   <button type="button" onClick={() => navigate('/catalog')} className="rounded-lg bg-slate-900 px-3 py-1 text-xs text-white hover:bg-slate-700 transition">Rebook</button>
                 </div>
               </article>
@@ -166,6 +175,8 @@ const DashboardPage = () => {
           </div>
         )}
       </section>
+
+      {invoiceBooking && <InvoiceModal booking={invoiceBooking} onClose={() => setInvoiceBooking(null)} />}
     </div>
   );
 };

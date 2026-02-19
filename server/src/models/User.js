@@ -14,7 +14,9 @@ const userSchema = new mongoose.Schema(
     lastLoginAt: { type: Date },
     loginAttempts: { type: Number, default: 0 },
     lockUntil: { type: Date },
-    refreshToken: { type: String }
+    refreshToken: { type: String },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date }
   },
   { timestamps: true }
 );

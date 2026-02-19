@@ -1,6 +1,7 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import { connectDatabase } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
@@ -12,6 +13,7 @@ import reviewRoutes from './routes/reviewRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
 import promoRoutes from './routes/promoRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -35,6 +37,14 @@ app.use(
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true })); // Required for PayHere notify POST
 app.use(morgan('dev'));
+
+// Rate limiting
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false, message: { message: 'Too many requests, please try again later.' } });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { message: 'Too many auth attempts, please try again later.' } });
+app.use('/api', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -67,6 +77,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/promo-codes', promoRoutes);
 app.use('/api/payhere', paymentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.use(errorHandler);
 

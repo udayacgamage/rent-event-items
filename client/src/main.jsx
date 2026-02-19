@@ -6,6 +6,7 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { CompareProvider } from './contexts/CompareContext';
 import './index.css';
 
 createRoot(document.getElementById('root')).render(
@@ -14,8 +15,10 @@ createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <AuthProvider>
           <CartProvider>
-            <Toaster position="top-right" toastOptions={{ duration: 3000, style: { borderRadius: '0.75rem', background: '#1e293b', color: '#f8fafc' } }} />
-            <App />
+            <CompareProvider>
+              <Toaster position="top-right" toastOptions={{ duration: 3000, style: { borderRadius: '0.75rem', background: '#1e293b', color: '#f8fafc' } }} />
+              <App />
+            </CompareProvider>
           </CartProvider>
         </AuthProvider>
       </BrowserRouter>

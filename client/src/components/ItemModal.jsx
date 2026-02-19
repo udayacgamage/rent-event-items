@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
+import ShareButton from './ShareButton';
 
 const tileClassName = (bookedRanges) => ({ date, view }) => {
   if (view !== 'month') return null;
@@ -152,6 +153,7 @@ const ItemModal = ({ item, onClose }) => {
   const [newRating, setNewRating] = useState(0);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingReview, setEditingReview] = useState(null); // { _id, rating, comment }
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'availability' | 'reviews'
 
@@ -195,17 +197,47 @@ const ItemModal = ({ item, onClose }) => {
     if (!newRating) return;
     setSubmitting(true);
     try {
-      await api.post('/reviews', { itemId: item._id, rating: newRating, comment: newComment });
+      if (editingReview) {
+        await api.patch(`/reviews/${editingReview._id}`, { rating: newRating, comment: newComment });
+        toast.success('Review updated!');
+        setEditingReview(null);
+      } else {
+        await api.post('/reviews', { itemId: item._id, rating: newRating, comment: newComment });
+        toast.success('Review submitted!');
+      }
       const res = await api.get(`/reviews/${item._id}`);
       setReviews(res.data.reviews || []);
       setNewRating(0);
       setNewComment('');
-      toast.success('Review submitted!');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not submit review');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const deleteReview = async (reviewId) => {
+    if (!window.confirm('Delete this review?')) return;
+    try {
+      await api.delete(`/reviews/${reviewId}`);
+      setReviews((prev) => prev.filter((r) => r._id !== reviewId));
+      toast.success('Review deleted');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not delete review');
+    }
+  };
+
+  const startEditReview = (review) => {
+    setEditingReview(review);
+    setNewRating(review.rating);
+    setNewComment(review.comment || '');
+    setActiveTab('reviews');
+  };
+
+  const cancelEdit = () => {
+    setEditingReview(null);
+    setNewRating(0);
+    setNewComment('');
   };
 
   const tabs = [
@@ -238,6 +270,10 @@ const ItemModal = ({ item, onClose }) => {
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition" aria-label="Close">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
+        </div>
+
+        <div className="px-6 pb-2 flex justify-end">
+          <ShareButton item={item} />
         </div>
 
         <div className="p-6">
@@ -360,7 +396,9 @@ const ItemModal = ({ item, onClose }) => {
               <div>
                 {user ? (
                   <div className="mb-5 rounded-lg border border-slate-200 p-4">
-                    <p className="mb-2 text-sm font-medium text-slate-700">Leave a review</p>
+                    <p className="mb-2 text-sm font-medium text-slate-700">
+                      {editingReview ? 'Edit your review' : 'Leave a review'}
+                    </p>
                     <StarRating rating={newRating} onRate={setNewRating} interactive />
                     <textarea
                       value={newComment}
@@ -369,14 +407,25 @@ const ItemModal = ({ item, onClose }) => {
                       className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                       rows={2}
                     />
-                    <button
-                      type="button"
-                      onClick={submitReview}
-                      disabled={!newRating || submitting}
-                      className="mt-2 rounded-lg bg-amber-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50 transition"
-                    >
-                      {submitting ? 'Submitting...' : 'Submit Review'}
-                    </button>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={submitReview}
+                        disabled={!newRating || submitting}
+                        className="rounded-lg bg-amber-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50 transition"
+                      >
+                        {submitting ? 'Submitting...' : editingReview ? 'Update Review' : 'Submit Review'}
+                      </button>
+                      {editingReview && (
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : null}
 
@@ -388,7 +437,29 @@ const ItemModal = ({ item, onClose }) => {
                       <div key={review._id} className="rounded-lg border border-slate-100 p-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-slate-900">{review.userName}</span>
-                          <StarRating rating={review.rating} />
+                          <div className="flex items-center gap-2">
+                            <StarRating rating={review.rating} />
+                            {user && review.userId === user._id && (
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditReview(review)}
+                                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-amber-600 transition"
+                                  title="Edit review"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteReview(review._id)}
+                                  className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 transition"
+                                  title="Delete review"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         {review.comment ? <p className="mt-1 text-sm text-slate-600">{review.comment}</p> : null}
                         <p className="mt-1 text-xs text-slate-400">{new Date(review.createdAt).toLocaleDateString()}</p>

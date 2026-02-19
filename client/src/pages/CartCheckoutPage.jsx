@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import CheckoutSteps from '../components/CheckoutSteps';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +10,7 @@ const PAYHERE_SANDBOX = import.meta.env.VITE_PAYHERE_SANDBOX !== 'false'; // def
 
 const CartCheckoutPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, register } = useAuth();
   const { items, total, updateQuantity, removeFromCart, clearCart } = useCart();
   const [step, setStep] = useState(1);
@@ -30,6 +31,18 @@ const CartCheckoutPage = () => {
   const [placing, setPlacing] = useState(false);
   const [promoApplied, setPromoApplied] = useState(null); // { code, discountPercent }
   const [promoChecking, setPromoChecking] = useState(false);
+
+  // Handle payment callback query params
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    if (payment === 'cancelled') {
+      toast.error('Payment was cancelled. You can try again.');
+      setSearchParams({}, { replace: true });
+    } else if (payment === 'failed') {
+      toast.error('Payment failed. Please try again or use a different method.');
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const discountAmount = promoApplied ? Math.round(total * promoApplied.discountPercent / 100) : 0;
   const finalTotal = total - discountAmount;

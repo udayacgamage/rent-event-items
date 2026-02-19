@@ -3,6 +3,7 @@ import Booking from '../models/Booking.js';
 import Item from '../models/Item.js';
 import PromoCode from '../models/PromoCode.js';
 import { authenticate } from '../middleware/auth.js';
+import { sendBookingConfirmationEmail, sendBookingCancellationEmail } from '../utils/email.js';
 
 const router = Router();
 
@@ -101,6 +102,9 @@ router.post('/', authenticate, async (req, res, next) => {
       paymentStatus: paymentStatus || 'pending'
     });
 
+    // Send confirmation email (fire & forget)
+    sendBookingConfirmationEmail(booking).catch(err => console.error('[Email] Booking confirmation failed:', err.message));
+
     return res.status(201).json({ booking });
   } catch (error) {
     next(error);
@@ -155,6 +159,9 @@ router.patch('/:id/cancel', authenticate, async (req, res, next) => {
     booking.bookingStatus = 'cancelled';
     booking.trackingStatus = 'processing';
     await booking.save();
+
+    // Send cancellation email (fire & forget)
+    sendBookingCancellationEmail(booking).catch(err => console.error('[Email] Cancellation email failed:', err.message));
 
     return res.json({ booking });
   } catch (error) {
